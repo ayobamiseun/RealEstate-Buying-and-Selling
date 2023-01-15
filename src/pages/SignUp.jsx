@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { AiFillEyeInvisible, AiFillEye } from "react-icons/ai";
 import { Link } from "react-router-dom";
 import OAuth from '../components/OAuth'
-import {getAuth, createUserWithEmailAndPassword} from 'firebase/auth'
+import {getAuth, createUserWithEmailAndPassword, updateProfile} from 'firebase/auth'
 import {db} from '../firebase'
 import { async } from "@firebase/util";
 export default function Signin() {
@@ -25,8 +25,12 @@ export default function Signin() {
     e.preventDefault();
     try {
       const auth = getAuth()
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      updateProfile(auth.currentUser, {
+        displayName: name,
+      }) 
       const user = userCredential.user
+      console.log(user)
     } catch (error) {
       
     }
