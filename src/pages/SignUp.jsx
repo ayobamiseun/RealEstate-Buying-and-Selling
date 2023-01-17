@@ -5,6 +5,9 @@ import OAuth from '../components/OAuth'
 import {getAuth, createUserWithEmailAndPassword, updateProfile} from 'firebase/auth'
 import {db} from '../firebase'
 import { async } from "@firebase/util";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 export default function Signin() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -13,6 +16,7 @@ export default function Signin() {
     password: "",
     
   });
+  const navigate = useNavigate()
   const { email, password, name } = formData;
   function onChange(e) {
     setFormData((prevState) => ({
@@ -30,8 +34,19 @@ export default function Signin() {
         displayName: name,
       }) 
       const user = userCredential.user
-      console.log(user)
+      const formDataCopy = {...formData}
+      delete formDataCopy.password  
+      formDataCopy.timestamp = serverTimestamp();
+      await setDoc(doc(db, "users", user.uid), formDataCopy)
+      // toast.success("Registration completed")
+      navigate("/")
+
     } catch (error) {
+      if (error.message) {
+        toast.error(error.message)
+      } else {
+        toast.error("something went wrong")
+      }
       
     }
     
