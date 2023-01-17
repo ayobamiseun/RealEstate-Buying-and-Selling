@@ -1,2 +1,7 @@
 # RealEstate-Buying-and-Selling
-### Google Sign OAuth
+### User Sign Up
+### User Login
+### Sign Up Using Google
+### User can Post properties
+### User Can bid for properties
+### Filter Using different preference
