@@ -1,8 +1,16 @@
 import React from 'react'
+import Spinner from '../components/Spinner'
 
 function Home() {
   return (
-    <div>Home</div>
+    <div>
+
+    <div>
+      <Spinner />
+    </div>
+
+    
+    </div>
   )
 }
 
