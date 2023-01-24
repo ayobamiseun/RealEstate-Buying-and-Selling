@@ -20,6 +20,7 @@ export default function Header() {
     if (route === location.pathname) {
       return true;
     }
+    
   }
   return (
     <div className="bg-white border-b shadow-sm sticky top-0 z-40">
