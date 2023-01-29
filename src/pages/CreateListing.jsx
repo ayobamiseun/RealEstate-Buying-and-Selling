@@ -1,7 +1,10 @@
 import React, { useState } from "react";
+import Spinner from '../components/Spinner';
+import { toast } from "react-toastify";
 
 export default function CreateListing() {
   const [geolocationEnabled, setGeolocationEnabled] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     type: "rent",
     name: "",
@@ -55,12 +58,23 @@ export default function CreateListing() {
       }));
      
     }
-    console.log(formData)
+ 
   }
+   function onSubmit(e){
+      e.preventDefault();
+      setLoading(true);
+      if (discountedPrice >= regularPrice) {
+        setLoading(false)
+        toast.error("the regular price can not be less than the discounted price")
+      }
+   }
+    if (loading) {
+       return <Spinner />
+    }
   return (
     <main className="max-w-md px-2 mx-auto">
       <h1 className="text-3xl text-center mt-6 font-bold">Create a Listing</h1>
-      <form>
+      <form onSubmit={onSubmit}>
         <p className="text-lg mt-6 font-semibold ">Sell / Rent</p>
         <div className="flex">
           <button
