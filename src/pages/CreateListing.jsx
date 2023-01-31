@@ -1,19 +1,23 @@
 import React, { useState } from "react";
-import Spinner from '../components/Spinner';
+import Spinner from "../components/Spinner";
 import { toast } from "react-toastify";
-import {getStorage, ref, uploadBytesResumable, getDownloadURL} from 'firebase/storage';
+import {
+  getStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
 import { getAuth } from "firebase/auth";
-import {v4 as uuidv4} from 'uuid'
-import {addDoc,collection, serverTimestamp} from 'firebase/firestore'
-import {db} from '../firebase'
+import { v4 as uuidv4 } from "uuid";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase";
 import { useNavigate } from "react-router-dom";
- 
 
 export default function CreateListing() {
-  const navigate = useNavigate()
-  const auth = getAuth()
-  const [geolocationEnabled, setGeolocationEnabled] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate();
+  const auth = getAuth();
+  const [geolocationEnabled, setGeolocationEnabled] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     type: "rent",
     name: "",
@@ -65,98 +69,99 @@ export default function CreateListing() {
         ...prevState,
         [e.target.id]: boolean ?? e.target.value,
       }));
-     
     }
- 
   }
-   async function onSubmit(e){
-      e.preventDefault();
-      setLoading(true);
-      if (+discountedPrice >= +regularPrice) {
-        setLoading(false)
-        toast.error("the regular price can not be less than the discounted price")
+  async function onSubmit(e) {
+    e.preventDefault();
+    setLoading(true);
+    if (+discountedPrice >= +regularPrice) {
+      setLoading(false);
+      toast.error(
+        "the regular price can not be less than the discounted price"
+      );
+      return;
+    }
+    if (images.length > 6) {
+      setLoading(false);
+      toast.error("images are more than 6");
+      return;
+    }
+
+    let geolocation = {};
+    let location;
+    if (geolocationEnabled) {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${address}$Key=${process.env.REACT_APP_GEOCODE_API}`
+      );
+      const data = response.json();
+      geolocation.lat = data.results[0]?.geometry.location.lat ?? 0;
+      geolocation.lng = data.results[0]?.geometry.location.lng ?? 0;
+
+      location = data.status === "ZERO_RESULTS" && undefined;
+      if (location === undefined || location.includes("undefined")) {
+        setLoading(false);
+        toast.error("please enter the right address");
         return;
       }
-       if(images.length > 6) {
-        setLoading(false)
-        toast.error("images are more than 6")
-        return;
-       }
-
-       let geolocation = {}
-       let location;
-       if (geolocationEnabled){
-        const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${address}$Key=${process.env.REACT_APP_GEOCODE_API}`);
-        const data = response.json();
-        geolocation.lat = data.results[0]?.geometry.location.lat ?? 0;
-        geolocation.lng = data.results[0]?.geometry.location.lng ?? 0;
-
-        location = data.status === "ZERO_RESULTS" && undefined;
-        if(location === undefined || location.includes("undefined")) {
-          setLoading(false)
-          toast.error("please enter the right address")
-          return;
-        }
-
-       }else {
-        geolocation.lat = latitude;
-        geolocation.lng = longitude
-       }
-
-     async  function storeImage(image ){
-          return new Promise((resolve, reject) => {
-             const storage = getStorage();
-             const filename = `${auth.currentUser.uid}-${image.name}-${uuidv4()}`;
-             const storageRef = ref(storage, filename);
-             const uploadTask = uploadBytesResumable(storageRef, image);
-             uploadTask.on('state_changed', 
-  (snapshot) => {
-    // Observe state change events such as progress, pause, and resume
-    // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
-    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-    console.log('Upload is ' + progress + '% done');
-    switch (snapshot.state) {
-      case 'paused':
-        console.log('Upload is paused');
-        break;
-      case 'running':
-        console.log('Upload is running');
-        break;
+    } else {
+      geolocation.lat = latitude;
+      geolocation.lng = longitude;
     }
-  }, 
-  (error) => {
 
-    reject(error)
-    // Handle unsuccessful uploads
-  }, 
-  () => {
-    // Handle successful uploads on complete
-    // For instance, get the download URL: https://firebasestorage.googleapis.com/...
-    getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+    async function storeImage(image) {
+      return new Promise((resolve, reject) => {
+        const storage = getStorage();
+        const filename = `${auth.currentUser.uid}-${image.name}-${uuidv4()}`;
+        const storageRef = ref(storage, filename);
+        const uploadTask = uploadBytesResumable(storageRef, image);
+        uploadTask.on(
+          "state_changed",
+          (snapshot) => {
+            // Observe state change events such as progress, pause, and resume
+            // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
+            const progress =
+              (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            console.log("Upload is " + progress + "% done");
+            switch (snapshot.state) {
+              case "paused":
+                console.log("Upload is paused");
+                break;
+              case "running":
+                console.log("Upload is running");
+                break;
+            }
+          },
+          (error) => {
+            reject(error);
+            // Handle unsuccessful uploads
+          },
+          () => {
+            // Handle successful uploads on complete
+            // For instance, get the download URL: https://firebasestorage.googleapis.com/...
+            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
               resolve(downloadURL);
             });
-  }
-);
-        })
-       }
+          }
+        );
+      });
+    }
 
-       const imgUrls = await Promise.all(
-        [...images].map((image) => storeImage(image))).catch((error)=> {
-         setLoading(false)
-         toast.error("images not uploaded")
-         return;
-        })
-      
+    const imgUrls = await Promise.all(
+      [...images].map((image) => storeImage(image))
+    ).catch((error) => {
+      setLoading(false);
+      toast.error("images not uploaded");
+      return;
+    });
 
-       const formDataCopy = {
-        ...formData,
-        imgUrls,
-        geolocation,
-        timestamp: serverTimestamp(),
+    const formDataCopy = {
+      ...formData,
+      imgUrls,
+      geolocation,
+      timestamp: serverTimestamp(),
+    };
 
-       };
-
-       delete formDataCopy.images;
+    delete formDataCopy.images;
     !formDataCopy.offer && delete formDataCopy.discountedPrice;
 
     delete formDataCopy.latitude;
@@ -165,12 +170,11 @@ export default function CreateListing() {
     setLoading(false);
     toast.success("Listing created");
     navigate("/category/${formDataCopy.type}/${docRef.id}");
+  }
 
-   }
-    
-    if (loading) {
-       return <Spinner />
-    }
+  if (loading) {
+    return <Spinner />;
+  }
   return (
     <main className="max-w-md px-2 mx-auto">
       <h1 className="text-3xl text-center mt-6 font-bold">Create a Listing</h1>
@@ -308,34 +312,34 @@ export default function CreateListing() {
           className="w-full px-4 py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition duration-150 ease-in-out focus:text-gray-700 focus:bg-white focus:border-slate-600 mb-6"
         />
         {!geolocationEnabled && (
-        <div className="flex space-x-6 justify-start mb-6">
-          <div className="">
-            <p className="text-lg font-semibold">Latitude</p>
-            <input
-              type="number"
-              id="latitude"
-              value={latitude}
-              onChange={onChange}
-              required
-              min="-90"
-              max="90"
-              className="w-full px-4 py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition duration-150 ease-in-out focus:bg-white focus:text-gray-700 focus:border-slate-600 text-center"
-            />
+          <div className="flex space-x-6 justify-start mb-6">
+            <div className="">
+              <p className="text-lg font-semibold">Latitude</p>
+              <input
+                type="number"
+                id="latitude"
+                value={latitude}
+                onChange={onChange}
+                required
+                min="-90"
+                max="90"
+                className="w-full px-4 py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition duration-150 ease-in-out focus:bg-white focus:text-gray-700 focus:border-slate-600 text-center"
+              />
+            </div>
+            <div className="">
+              <p className="text-lg font-semibold">Longitude</p>
+              <input
+                type="number"
+                id="longitude"
+                value={longitude}
+                onChange={onChange}
+                required
+                min="-180"
+                max="180"
+                className="w-full px-4 py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition duration-150 ease-in-out focus:bg-white focus:text-gray-700 focus:border-slate-600 text-center"
+              />
+            </div>
           </div>
-          <div className="">
-            <p className="text-lg font-semibold">Longitude</p>
-            <input
-              type="number"
-              id="longitude"
-              value={longitude}
-              onChange={onChange}
-              required
-              min="-180"
-              max="180"
-              className="w-full px-4 py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition duration-150 ease-in-out focus:bg-white focus:text-gray-700 focus:border-slate-600 text-center"
-            />
-          </div>
-        </div>
         )}
         <p className="text-lg font-semibold">Description</p>
         <textarea
