@@ -12,6 +12,7 @@ import SwiperCore, {
 } from "swiper";
 import "swiper/css/bundle";
 
+ 
 
 
 export default function Listing() {
@@ -56,6 +57,9 @@ export default function Listing() {
                 backgroundSize: "cover",
               }}
             ></div>
+
+            
+            
             
           </SwiperSlide>
         ))}
