@@ -1,12 +1,15 @@
-import React from 'react'
+
+import Slider from '../components/Slider'
 import Spinner from '../components/Spinner'
 
 function Home() {
+
   return (
     <div>
 
     <div>
-      <Spinner />
+     <Slider />
+
     </div>
 
     
